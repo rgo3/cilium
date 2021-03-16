@@ -37,6 +37,7 @@ import (
 	"github.com/cilium/cilium/pkg/datapath/connector"
 	"github.com/cilium/cilium/pkg/datapath/iptables"
 	linuxdatapath "github.com/cilium/cilium/pkg/datapath/linux"
+	"github.com/cilium/cilium/pkg/datapath/linux/ethtool"
 	"github.com/cilium/cilium/pkg/datapath/linux/ipsec"
 	"github.com/cilium/cilium/pkg/datapath/linux/probes"
 	linuxrouting "github.com/cilium/cilium/pkg/datapath/linux/routing"
@@ -1259,11 +1260,29 @@ func initEnv(cmd *cobra.Command) {
 	}
 
 	if option.Config.EnableIPSec && option.Config.Tunnel == option.TunnelDisabled && len(option.Config.EncryptInterface) == 0 {
-		link, err := linuxdatapath.NodeDeviceNameWithDefaultRoute()
-		if err != nil {
-			log.WithError(err).Fatal("Ipsec default interface lookup failed, consider \"encrypt-interface\" to manually configure interface.")
+		// IPAMENI mode supports multiple network facing interfaces that
+		// will all need Encrypt logic applied in order to decrypt any
+		// received encrypted packets. This logic will attach to all
+		// !veth devices.
+		if option.Config.IPAM == ipamOption.IPAMENI {
+			interfaces := option.Config.EncryptInterface
+
+			if links, err := netlink.LinkList(); err == nil {
+				for _, link := range links {
+					use, err := ethtool.IsNotVirtualDriver(link.Attrs().Name)
+					if err == nil && use {
+						interfaces = append(interfaces, link.Attrs().Name)
+					}
+				}
+				option.Config.EncryptInterface = interfaces
+			}
+		} else {
+			link, err := linuxdatapath.NodeDeviceNameWithDefaultRoute()
+			if err != nil {
+				log.WithError(err).Fatal("Ipsec default interface lookup failed, consider \"encrypt-interface\" to manually configure interface.")
+			}
+			option.Config.EncryptInterface = append(option.Config.EncryptInterface, link)
 		}
-		option.Config.EncryptInterface = append(option.Config.EncryptInterface, link)
 	}
 
 	if option.Config.Tunnel != option.TunnelDisabled && option.Config.EnableAutoDirectRouting {
