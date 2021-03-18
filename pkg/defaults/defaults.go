@@ -408,4 +408,10 @@ const (
 
 	// EnableBPFBypassFIBLookup instructs Cilium to enable the FIB lookup bypass optimization for nodeport reverse NAT handling.
 	EnableBPFBypassFIBLookup = true
+
+	// WireguardSubnetV4 is a default wireguard tunnel subnet
+	WireguardSubnetV4 = "172.16.42.0/24"
+
+	// WireguardSubnetV6 is a default wireguard tunnel subnet
+	WireguardSubnetV6 = "fdc9:281f:04d7:9ee9::1/64"
 )
