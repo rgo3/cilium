@@ -165,6 +165,12 @@ skip_service_lookup:
 			*dstID = info->sec_label;
 			tunnel_endpoint = info->tunnel_endpoint;
 			encrypt_key = get_min_encrypt_key(info->key);
+#ifdef ENABLE_WIREGUARD
+			if (info->tunnel_endpoint != 0 &&
+			    info->sec_label != HOST_ID &&
+			    info->sec_label != REMOTE_NODE_ID)
+				ctx->mark |= MARK_MAGIC_ENCRYPT;
+#endif /* ENABLE_WIREGUARD */
 		} else {
 			*dstID = WORLD_ID;
 		}
@@ -544,6 +550,17 @@ skip_service_lookup:
 			*dstID = info->sec_label;
 			tunnel_endpoint = info->tunnel_endpoint;
 			encrypt_key = get_min_encrypt_key(info->key);
+#ifdef ENABLE_WIREGUARD
+			/* If we detect that the dst is a remote endpoint, we
+			 * need to mark the packet. The ip rule which matches
+			 * on the MARK_MAGIC_ENCRYPT mark will steer the packet
+			 * to the Wireguard tunnel.
+			 */
+			if (info->tunnel_endpoint != 0 &&
+			    info->sec_label != HOST_ID &&
+			    info->sec_label != REMOTE_NODE_ID)
+				ctx->mark |= MARK_MAGIC_ENCRYPT;
+#endif /* ENABLE_WIREGUARD */
 		} else {
 			*dstID = WORLD_ID;
 		}
