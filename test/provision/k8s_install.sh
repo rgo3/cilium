@@ -90,12 +90,12 @@ ff02::2 ip6-allrouters
 EOF
 
 cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
-deb http://apt.kubernetes.io/ kubernetes-xenial main
+deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /
 EOF
 
 sudo rm /var/lib/apt/lists/lock || true
-retry_function "wget https://packages.cloud.google.com/apt/doc/apt-key.gpg"
-apt-key add apt-key.gpg
+retry_function "wget https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key"
+gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 
 case $K8S_VERSION in
     "1.24" | "1.25" | "1.26" | "1.27")
